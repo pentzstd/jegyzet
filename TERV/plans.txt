@@ -1,0 +1,20 @@
+Register / Login
+
+Project Tab (Create projects and add the mentioned components below:)
+-Gantt chart (Timeline tracker)
+-Kanban board / Trello ahh board (In progress / Done / Planned)
+-Whiteboard / Flow Charts (Every component mentioned)
+-Notes (Different types of notes, convenient, 2 pages, pinned stuff on each side, progress bar / checkbox)
+
+Shared Projects Tab (same as the Project tab, but with teamwork features)
+-Quickly Chat with coworkers within a project (there can be multiple chat groups, TEXT ONLY)
+-Tags / Roles (Tied to user within a shared project)
+-Emotion Tracker (Tied to user within a shared project)
+-Coworker tab (Check everyone's status, everyone has a little note below with what they are working on currently)
+
+Optional features to (maybe) add:
+-Linking videos within components (videos could be viewed instantly not just a URL)
+-Project tree (project threads, image of it on my desktop)
+-Calendar (smaller notes within the dates, when clicked it can extend to reveal more info, could maybe link to other components)
+-Tables (basic ahh Excel)
+-AI
