@@ -14,6 +14,7 @@ CREATE TABLE users (
 
 CREATE TABLE note_projects (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    FOREIGN KEY (user_id) REFERENCES users(id),
     project_name VARCHAR(50) NOT NULL
 );
 
@@ -24,3 +25,10 @@ CREATE TABLE notes (
     note_data LONGTEXT,
     title TINYTEXT
 );
+
+CREATE TABLE user_note_projects (
+    user_id INT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    project_id INT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES note_projects(id)
+)

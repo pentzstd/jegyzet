@@ -35,7 +35,7 @@ function sf(file) { return path.join(__dirname, "public", "file") }
 
 // live share link
 app.get("/j", (req, res) => {
-    const link = "https://prod.liveshare.vsengsaas.visualstudio.com/join?4647618E29F3B0A0FDF5772180C3FD6729F2";
+    const link = "https://prod.liveshare.vsengsaas.visualstudio.com/join?5A56C72F43AE8EBC7A50DD11E339D76DF007";
     res.send(link)
 })
 
