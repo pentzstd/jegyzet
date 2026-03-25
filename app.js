@@ -3,28 +3,39 @@ const express = require("express")
 const session = require("express-session")
 const path = require("path")
 const mysql = require("mysql2")
+const cookieStore = require("express-mysql-session")(session)
 
 //  port
 const PORT = 3000
 
-//  static folder es json decodolas
-const app = express()
-app.use(session({
-    secret: "alma",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {secure:false}
-}))
-app.use(express.static(path.join(__dirname, "public")))
-app.use(express.json())
-
 //  csatlakozas az adatbazishoz
-let db = mysql.createConnection({
+let dbOptions = {
     host: "localhost",
     user: "root",
     password: "",
     database: "NOTED"
-})
+}
+const sessionStore = new cookieStore(dbOptions);
+let db = mysql.createConnection(dbOptions)
+
+//  static folder es json decodolas
+const app = express()
+app.use(session({
+    key: "session_id",
+    secret: "alma",
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStore,
+    rolling: true,
+    cookie: {
+        secure:false,
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10
+    }
+}))
+app.use(express.static(path.join(__dirname, "public")))
+app.use(express.json())
+
+
 
 //  start server
 app.listen(PORT, (err) => { if (err) { "Hiba a szerver elindulásakor!" } else { "A szerver a %s porton fut...", PORT } })
@@ -44,12 +55,12 @@ function sf(file) { return path.join(__dirname, "public", file) }
 
 // live share link
 app.get("/j", (req, res) => {
-    const link = "https://prod.liveshare.vsengsaas.visualstudio.com/join?DBB70E47E1D95C2BCE43FBB9852B8735F2BE";
+    const link = "https://prod.liveshare.vsengsaas.visualstudio.com/join?6BF44C3FECB1EF8225DFA81A909F84C554E0";
     res.send(link)
 })
 
 
-app.get("/:user_id/:project", (req, res) => {
+app.get("/:user_id/:project_id", (req, res) => {
     res.sendFile(sf("projects.html"))
 })
 
@@ -58,11 +69,11 @@ app.get("/", (req, res) => {
 })
 
 app.get("/login", (req, res) => {
-    res.sendFile(sf("login-register.html"))
+    res.sendFile(sf("login.html"))
 })
 
 app.get("/register", (req, res) => {
-    res.sendFile(sf("login-register.html"))
+    res.sendFile(sf("register.html"))
 })
 
 
@@ -96,16 +107,13 @@ app.post("/login", (req, res) => {
         if (results.length > 0) {
             const user = results[0];
             
-            // 1. Beállítjuk az adatokat
             req.session.user = {
                 id: user.id,
-                email: user.email
+                email: email
             };
 
-            // 2. KÉNYSZERÍTETT MENTÉS (Ez a kulcs!)
             req.session.save((err) => {
                 if (err) return res.json({ success: false });
-                // Csak ha a mentés KÉSZ, akkor küldjük a választ a kliensnek
                 res.json({ success: true });
             });
         } else {
@@ -117,4 +125,20 @@ app.post("/login", (req, res) => {
 //  user data
 app.get("/me", (req, res) => {
     res.json(req.session.user || null)
+})
+
+app.get("/log-out", (req, res) => {
+    req.session.user = null;
+    if (req.session.user !== null) {
+        res.sendStatus(501)
+    }
+    res.sendStatus(200);
+})
+
+app.get("/create-new-node", (req, res) => {
+
+})
+
+app.get("/create-new-project", (req, res) => {
+
 })

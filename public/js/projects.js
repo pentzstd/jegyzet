@@ -1,100 +1,205 @@
-let selected_note
+const note_window = document.getElementById("note_window")
+const canvas = document.getElementById("canvas")
+const select_box = document.getElementById("select_box")
+
 let selected_notes = []
 let initialPositions = []
 let is_dragging_window = false
 let is_dragging_notes = false
-const note_window = document.getElementById("note_window")
-const canvas = document.getElementById("canvas")
-let offset = {x:0, y:0}
+let is_dragging_selection_box = false
+
+let offset = { x: 0, y: 0 }
 let pan = { x: 0, y: 0 }
+let start = { x: 0, y: 0 }
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+const getNoteEl = (id) => document.getElementById(id)
+
+const removeAllSelected = () => {
+  selected_notes.forEach(id => getNoteEl(id)?.classList.remove("note-selected"))
+  selected_notes.length = 0
+}
+
+const addToSelection = (el) => {
+  if (!selected_notes.includes(el.id)) {
+    el.classList.add("note-selected")
+    selected_notes.push(el.id)
+  }
+}
+
+const removeFromSelection = (el) => {
+  el.classList.remove("note-selected")
+  selected_notes = selected_notes.filter(id => id !== el.id)
+}
+
+const rectsOverlap = (a, b) =>
+  a.left < b.right && a.right > b.left &&
+  a.top < b.bottom && a.bottom > b.top
+
+// ─── mousedown ──────────────────────────────────────────────────────────────
+
 note_window.addEventListener("mousedown", (e) => {
-  let s = e.target
-  console.log(s)
-  if (e.button === 1 && (s.id === "note_window" || s.id === "canvas")) {
+  const target = e.target
+
+  // middle-click on a note: drag it (Ctrl = add to existing selection first)
+  if (e.button === 1 && target.closest(".note")) {
+    const note = target.closest(".note")
+
+    if (e.ctrlKey) {
+      // keep existing selection, just start dragging all selected notes
+      if (!selected_notes.includes(note.id)) addToSelection(note)
+    } else {
+      if (!selected_notes.includes(note.id)) {
+        removeAllSelected()
+        addToSelection(note)
+      }
+    }
+
+    is_dragging_notes = true
+    offset.x = e.clientX
+    offset.y = e.clientY
+    initialPositions = selected_notes.map(id => {
+      const el = getNoteEl(id)
+      return { el, left: el.offsetLeft, top: el.offsetTop }
+    })
+    return
+  }
+
+  // middle-click on the background: pan
+  if (e.button === 1 && (target === note_window || target === canvas)) {
     is_dragging_window = true
-    offset.x = e.clientX - pan.x;
-    offset.y = e.clientY - pan.y;
-  }
-  else if (e.ctrlKey && e.button === 1 && document.getElementById(s.id).classList.contains("note-selected")) {
-    is_dragging_notes = true
-    console.log(selected_notes)
-    offset.x = e.clientX;
-    offset.y = e.clientY;
-
-    initialPositions = selected_notes.map(note => ({
-      note: document.getElementById(note),
-      left: document.getElementById(note).offsetLeft,
-      top: document.getElementById(note).offsetTop
-    }))
-    console.log(initialPositions)
-  }
-    else if (e.button === 1) {
-    remove_all_selected()
-    is_dragging_notes = true
-    s.classList.add("note-selected")
-    selected_notes.push(s.id)
-    console.log(selected_notes)
-    offset.x = e.clientX;
-    offset.y = e.clientY;
-
-    initialPositions = selected_notes.map(note => ({
-      note: document.getElementById(note),
-      left: document.getElementById(note).offsetLeft,
-      top: document.getElementById(note).offsetTop
-    }))
+    offset.x = e.clientX - pan.x
+    offset.y = e.clientY - pan.y
+    return
   }
 
+  // left-click on the background: start selection box
+  if (e.button === 0 && (target === note_window || target === canvas)) {
+    const rect = note_window.getBoundingClientRect()  // add this
+    start.x = e.clientX - rect.left                   // changed
+    start.y = e.clientY - rect.top                    // changed
+    select_box.style.left   = `${start.x}px`
+    select_box.style.top    = `${start.y}px`
+    select_box.style.width  = "0px"
+    select_box.style.height = "0px"
+    select_box.classList.remove("select_box_hidden")
+    select_box.classList.add("select_box_visible")
+    is_dragging_selection_box = true
+    if (!e.ctrlKey) removeAllSelected()
+  }
 })
+
+// ─── mousemove ──────────────────────────────────────────────────────────────
+
+let rafId = null
 
 note_window.addEventListener("mousemove", (e) => {
-  if (is_dragging_window) {
-    pan.x = e.clientX - offset.x;
-    pan.y = e.clientY - offset.y;
-    canvas.style.transform = `translate(${pan.x}px, ${pan.y}px)`;
-  }
-  if (is_dragging_notes) {
-      const dx = e.clientX - offset.x;
-      const dy = e.clientY - offset.y;
-      initialPositions.forEach(item => {
-        item.note.style.left = `${item.left + dx}px`;
-        item.note.style.top = `${item.top + dy}px`;
-    });
-  }
+  if (!is_dragging_window && !is_dragging_notes && !is_dragging_selection_box) return
+
+  if (rafId) cancelAnimationFrame(rafId)
+  rafId = requestAnimationFrame(() => {
+
+    if (is_dragging_window) {
+      pan.x = e.clientX - offset.x
+      pan.y = e.clientY - offset.y
+      canvas.style.transform = `translate(${pan.x}px, ${pan.y}px)`
+    }
+
+    if (is_dragging_notes) {
+      const dx = e.clientX - offset.x
+      const dy = e.clientY - offset.y
+      initialPositions.forEach(({ el, left, top }) => {
+        el.style.left = `${left + dx}px`
+        el.style.top  = `${top  + dy}px`
+      })
+    }
+
+if (is_dragging_selection_box) {
+  const nwRect = note_window.getBoundingClientRect()
+  const curX = e.clientX - nwRect.left
+  const curY = e.clientY - nwRect.top
+
+  const left   = Math.min(start.x, curX)
+  const top    = Math.min(start.y, curY)
+  const width  = Math.abs(curX - start.x)
+  const height = Math.abs(curY - start.y)
+
+  select_box.style.left   = `${left}px`
+  select_box.style.top    = `${top}px`
+  select_box.style.width  = `${width}px`
+  select_box.style.height = `${height}px`
+
+  const boxRect = { left, top, right: left + width, bottom: top + height }
+
+  document.querySelectorAll(".note").forEach(note => {
+    const r = note.getBoundingClientRect()
+    const noteRect = {        // convert note coords to note_window-local space too
+      left:   r.left   - nwRect.left,
+      top:    r.top    - nwRect.top,
+      right:  r.right  - nwRect.left,
+      bottom: r.bottom - nwRect.top
+    }
+    if (rectsOverlap(boxRect, noteRect)) {
+      addToSelection(note)
+    } else if (!e.ctrlKey) {
+      removeFromSelection(note)
+    }
+  })
+}
+  })
 })
+
+// ─── mouseup ────────────────────────────────────────────────────────────────
 
 note_window.addEventListener("mouseup", (e) => {
   if (e.button === 1) {
-    is_dragging_window = false;
-    is_dragging_notes = false
+    is_dragging_window = false
+    is_dragging_notes  = false
+  }
+  if (e.button === 0) {
+    is_dragging_selection_box = false
+    select_box.classList.remove("select_box_visible")
+    select_box.classList.add("select_box_hidden")
+    select_box.style.width  = "0px"
+    select_box.style.height = "0px"
   }
 })
 
-note_window.addEventListener("click", (e) => {
-  selected_note = e.target.closest(".note")
-  try {
-  if (e.ctrlKey && e.button === 0 && !selected_notes.includes(selected_note.id)) {
-    selected_note.classList.add("note-selected")
-    selected_notes.push(selected_note.id)
-  }
-  else if (e.ctrlKey && e.button === 0 && selected_notes.includes(selected_note.id)) {
-    selected_note.classList.remove("note-selected")
-    selected_notes = selected_notes.toSpliced(selected_notes.indexOf(selected_note.id), 1)
-  }
-  else {
-    remove_all_selected()
-    selected_note.classList.add("note-selected")
-    selected_notes.push(selected_note.id)
-  }
-  console.log(selected_notes)
-  }
-  catch {
-    console.log(selected_notes)
-  }
-});
+// ─── click (Ctrl+click to toggle individual notes) ──────────────────────────
 
-let remove_all_selected = () => {
-  selected_notes.forEach(element => {
-    document.getElementById(element).classList.remove("note-selected")
-  })
-  selected_notes.length = 0
-}
+note_window.addEventListener("click", (e) => {
+  const note = e.target.closest(".note")
+  if (!note) return
+
+  if (e.ctrlKey) {
+    if (selected_notes.includes(note.id)) {
+      removeFromSelection(note)
+    } else {
+      addToSelection(note)
+    }
+  } else {
+    removeAllSelected()
+    addToSelection(note)
+  }
+})
+
+// ─── keyboard shortcuts ─────────────────────────────────────────────────────
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    removeAllSelected()
+  }
+  if ((e.key === "Delete" || e.key === "Backspace") && selected_notes.length) {
+    selected_notes.forEach(id => getNoteEl(id)?.remove())
+    selected_notes.length = 0
+  }
+})
+
+// ___ UI buttons _____________________________________________________________
+
+document.getElementById("new_note_button").addEventListener("click", (req, res) => {
+
+
+
+})

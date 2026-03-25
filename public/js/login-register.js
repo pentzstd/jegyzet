@@ -53,6 +53,8 @@ document.getElementById("login_button").addEventListener("click", async (e) => {
     }
 })
 
-const res = await fetch("/me")
-const result = await res.json()
-console.log(result.email)
+document.getElementById("log_off").addEventListener("click", async () => {
+    const res = await fetch("/log-out")
+    const result = res.status
+    window.location.href = "/login"
+})
