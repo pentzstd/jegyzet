@@ -122,6 +122,43 @@ app.post("/login", (req, res) => {
     });
 });
 
+app.post("/create-project", (req, res) => {
+    const userId = req.session.user.id;
+    const sqlI = "INSERT INTO note_projects (project_name) VALUES (?)";
+
+    let name = "New Project"
+
+    // First insert the project
+    db.query(sqlI, [name], (errI, resultsI) => {
+        if (errI) return res.json({ success: false });
+
+        const newProjectId = resultsI.insertId; // mysql gives you this automatically
+
+        // Then link it to the user in the junction table
+        const sqlLink = "INSERT INTO user_note_projects (user_id, project_id) VALUES (?, ?)";
+        db.query(sqlLink, [userId, newProjectId], (errL) => {
+            if (errL) return res.json({ success: false });
+            res.json({ success: true, projectId: newProjectId, name: name});
+        });
+    });
+});
+
+app.get("/get-user-projects", (req, res) => {
+    const userId = req.session.user.id;
+
+    const sql = `
+        SELECT note_projects.*
+        FROM note_projects
+        JOIN user_note_projects ON note_projects.id = user_note_projects.project_id
+        WHERE user_note_projects.user_id = ?
+    `;
+
+    db.query(sql, [userId], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(results);
+    });
+});
+
 //  user data
 app.get("/me", (req, res) => {
     res.json(req.session.user || null)

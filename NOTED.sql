@@ -14,8 +14,6 @@ CREATE TABLE users (
 
 CREATE TABLE note_projects (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id),
     project_name VARCHAR(50) NOT NULL
 );
 

@@ -198,8 +198,25 @@ document.addEventListener("keydown", (e) => {
 
 // ___ UI buttons _____________________________________________________________
 
-document.getElementById("new_note_button").addEventListener("click", (req, res) => {
 
+//  new project creation
+document.getElementById("new_project_button").addEventListener("click", async () => {
+  const res = await fetch("/create-project", {
+    method: "POST"
+  });
+  const result = await res.json()
+  if (result.success === true) {
+    document.getElementById("project_box").insertAdjacentHTML("beforeend",`<div style="background-color:pink" id="${result.projectId}">${result.name}</div>`)
+  }
+})
 
+// ___ UI buttons _____________________________________________________________
 
+//  onload get every project
+window.addEventListener("load", async ()=> {
+  const res = await fetch("/get-user-projects")
+  const results = await res.json()
+  results.forEach(element => {
+    document.getElementById("project_box").insertAdjacentHTML("beforeend",`<div style="background-color:pink" id="${element.id}">${element.project_name}</div>`)
+  })
 })

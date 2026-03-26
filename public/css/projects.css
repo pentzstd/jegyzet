@@ -18,6 +18,7 @@ body, html {
   height: 100%;
   border-right: #007bff 1px dashed;
   border-radius: 30px;
+  overflow-y: scroll;
 }
 
 #select_box {
