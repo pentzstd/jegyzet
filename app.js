@@ -51,19 +51,6 @@ function sf(file) { return path.join(__dirname, "public", file) }
 
 
 
-// routing
-
-// live share link
-app.get("/j", (req, res) => {
-    const link = "https://prod.liveshare.vsengsaas.visualstudio.com/join?6BF44C3FECB1EF8225DFA81A909F84C554E0";
-    res.send(link)
-})
-
-
-app.get("/:user_id/:project_id", (req, res) => {
-    res.sendFile(sf("projects.html"))
-})
-
 app.get("/", (req, res) => {
     res.sendFile(sf("index.html"))
 })
@@ -75,7 +62,6 @@ app.get("/login", (req, res) => {
 app.get("/register", (req, res) => {
     res.sendFile(sf("register.html"))
 })
-
 
 
 //  actions
@@ -179,3 +165,18 @@ app.get("/create-new-node", (req, res) => {
 app.get("/create-new-project", (req, res) => {
 
 })
+
+
+// routing
+
+// live share link
+app.get("/j", (req, res) => {
+    const link = "https://prod.liveshare.vsengsaas.visualstudio.com/join?6BF44C3FECB1EF8225DFA81A909F84C554E0";
+    res.send(link)
+})
+
+
+app.get("/:project_id", (req, res) => {
+    res.sendFile(sf("projects.html"))
+})
+

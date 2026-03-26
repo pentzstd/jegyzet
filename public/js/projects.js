@@ -210,7 +210,7 @@ document.getElementById("new_project_button").addEventListener("click", async ()
   }
 })
 
-// ___ UI buttons _____________________________________________________________
+// ___ onload events _____________________________________________________________
 
 //  onload get every project
 window.addEventListener("load", async ()=> {
