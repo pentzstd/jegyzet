@@ -206,17 +206,63 @@ document.getElementById("new_project_button").addEventListener("click", async ()
   });
   const result = await res.json()
   if (result.success === true) {
-    document.getElementById("project_box").insertAdjacentHTML("beforeend",`<div style="background-color:pink" id="${result.projectId}">${result.name}</div>`)
+    document.getElementById("project_box").insertAdjacentHTML("beforeend",`<div style="background-color:pink" class="project_tab" id=" ${result.projectId} "> New Project <div class="delete_project_button" id=" ${result.projectId} "> X </div></div>`)
   }
 })
 
 // ___ onload events _____________________________________________________________
 
 //  onload get every project
-window.addEventListener("load", async ()=> {
+
+let get_user_projects = async () => {
   const res = await fetch("/get-user-projects")
   const results = await res.json()
   results.forEach(element => {
-    document.getElementById("project_box").insertAdjacentHTML("beforeend",`<div style="background-color:pink" id="${element.id}">${element.project_name}</div>`)
+    document.getElementById("project_box").insertAdjacentHTML("beforeend",`<div style="background-color:pink" id="${element.id}">${element.project_name}<div class="delete_project_button" id="${element.id}"> X </div></div>`)
   })
+}
+
+const html_project_wrapper = `<div style="background-color:pink" class="project_tab" id="  ">  <div class="delete_project_button" id=" "> X </div></div>`
+window.addEventListener("load", async ()=> {
+  get_user_projects()
 })
+
+// ___ delete project ______________________________________________________________
+
+
+document.addEventListener("click", async (e) => {
+    // 1. Megnézzük, hogy a törlés gombra kattintottunk-e
+    const deleteBtn = e.target.closest(".delete_project_button");
+    
+    // Ha nem a törlés gombra kattintottak, kilépünk
+    if (!deleteBtn) return;
+
+    const project_id = deleteBtn.id;
+
+    // Csak akkor küldjük, ha az ID nem üres
+    if (!project_id || project_id.trim() === "") {
+        console.error("A projektnek nincs érvényes ID-ja!");
+        return;
+    }
+
+    try {
+        const res = await fetch("/delete-project", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                projectId: project_id
+            })
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+            window.location.reload()
+            get_user_projects();
+        } else {
+            alert("Szerver hiba: " + result.message);
+        }
+    } catch (err) {
+        console.error("Hálózati hiba:", err);
+    }
+});

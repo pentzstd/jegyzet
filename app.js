@@ -145,6 +145,29 @@ app.get("/get-user-projects", (req, res) => {
     });
 });
 
+app.delete("/delete-project", (req, res) => {
+    const { projectId } = req.body;
+    const userId = req.session.user.id;
+
+    const sqlDeleteLink = "DELETE FROM user_note_projects WHERE project_id = ? AND user_id = ?";
+
+    db.query(sqlDeleteLink, [projectId, userId], (errL, resultsL) => {
+        if (errL) return res.json({ success: false, error: errL });
+
+        if (resultsL.affectedRows === 0) {
+            return res.json({ success: false, message: "Nincs jogosultság vagy nem létezik." });
+        }
+
+        const sqlDeleteProject = "DELETE FROM note_projects WHERE id = ?";
+        
+        db.query(sqlDeleteProject, [projectId], (errP) => {
+            if (errP) return res.json({ success: false, error: errP });
+            
+            res.json({ success: true, message: "Projekt sikeresen törölve." });
+        });
+    });
+});
+
 //  user data
 app.get("/me", (req, res) => {
     res.json(req.session.user || null)
