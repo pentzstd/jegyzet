@@ -8,18 +8,27 @@ const cookieStore = require("express-mysql-session")(session)
 //  port
 const PORT = 3000
 
-//  csatlakozas az adatbazishoz
-let dbOptions = {
+let dbConfig = {
     host: "localhost",
     user: "root",
     password: "",
     database: "NOTED"
-}
-const sessionStore = new cookieStore(dbOptions);
-let db = mysql.createConnection(dbOptions)
+};
 
-//  static folder es json decodolas
-const app = express()
+let sessionOptions = {
+    createDatabaseTable: true, // Ez hozza létre a táblát automatikusan
+    schema: {
+        tableName: 'sessions' // Opcionális: megadhatod a tábla nevét
+    }
+};
+
+// Csatlakozás az adatbázishoz
+let db = mysql.createConnection(dbConfig);
+
+const sessionStore = new cookieStore(sessionOptions, db);
+
+const app = express();
+
 app.use(session({
     key: "session_id",
     secret: "alma",
@@ -28,10 +37,10 @@ app.use(session({
     store: sessionStore,
     rolling: true,
     cookie: {
-        secure:false,
+        secure: false,
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10
     }
-}))
+}));
 app.use(express.static(path.join(__dirname, "public")))
 app.use(express.json())
 
@@ -110,7 +119,7 @@ app.post("/login", (req, res) => {
 
 app.post("/create-project", (req, res) => {
     const userId = req.session.user.id;
-    const sqlI = "INSERT INTO note_projects (project_name) VALUES (?)";
+    const sqlI = "INSERT INTO projects (project_name) VALUES (?)";
 
     let name = "New Project"
 
@@ -121,7 +130,7 @@ app.post("/create-project", (req, res) => {
         const newProjectId = resultsI.insertId; // mysql gives you this automatically
 
         // Then link it to the user in the junction table
-        const sqlLink = "INSERT INTO user_note_projects (user_id, project_id) VALUES (?, ?)";
+        const sqlLink = "INSERT INTO user_projects (user_id, project_id) VALUES (?, ?)";
         db.query(sqlLink, [userId, newProjectId], (errL) => {
             if (errL) return res.json({ success: false });
             res.json({ success: true, projectId: newProjectId, name: name});
@@ -129,19 +138,38 @@ app.post("/create-project", (req, res) => {
     });
 });
 
+app.post("/set-new-open-project", (req, res) => {
+    const {new_open_project_id} = req.body
+    if (new_open_project_id != "NO") req.session.user.open_project_id = new_open_project_id;
+
+    const sql = "SELECT * FROM modules WHERE project_id = ?"
+    db.query(sql, [req.session.user.open_project_id], (err, results) => {
+        if (err) return res.json({ success:false });
+        res.json({success: true, modules:results, new_id:req.session.user.open_project_id})
+    })
+})
+
 app.get("/get-user-projects", (req, res) => {
     const userId = req.session.user.id;
 
     const sql = `
-        SELECT note_projects.*
-        FROM note_projects
-        JOIN user_note_projects ON note_projects.id = user_note_projects.project_id
-        WHERE user_note_projects.user_id = ?
+        SELECT projects.*
+        FROM projects
+        JOIN user_projects ON projects.id = user_projects.project_id
+        WHERE user_projects.user_id = ?
     `;
 
     db.query(sql, [userId], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json(results);
+        let projectExists = false
+        for (const result of results) {
+            if (req.session.user.open_project_id == result.id) {
+                projectExists = true
+                break;
+            }
+        }
+        //if (!projectExists) req.session.user.open_project_id = results[0].id
+        res.json({results:results, open_project_id: req.session.user.open_project_id});
     });
 });
 
@@ -149,7 +177,7 @@ app.delete("/delete-project", (req, res) => {
     const { projectId } = req.body;
     const userId = req.session.user.id;
 
-    const sqlDeleteLink = "DELETE FROM user_note_projects WHERE project_id = ? AND user_id = ?";
+    const sqlDeleteLink = "DELETE FROM user_projects WHERE project_id = ? AND user_id = ?";
 
     db.query(sqlDeleteLink, [projectId, userId], (errL, resultsL) => {
         if (errL) return res.json({ success: false, error: errL });
@@ -158,7 +186,7 @@ app.delete("/delete-project", (req, res) => {
             return res.json({ success: false, message: "Nincs jogosultság vagy nem létezik." });
         }
 
-        const sqlDeleteProject = "DELETE FROM note_projects WHERE id = ?";
+        const sqlDeleteProject = "DELETE FROM projects WHERE id = ?";
         
         db.query(sqlDeleteProject, [projectId], (errP) => {
             if (errP) return res.json({ success: false, error: errP });
@@ -181,13 +209,16 @@ app.get("/log-out", (req, res) => {
     res.sendStatus(200);
 })
 
-app.get("/create-new-node", (req, res) => {
+app.post("/create-new-module", (req, res) => {
+    const {title, module} = req.body
+    const sql = "INSERT INTO modules (title, data, project_id) VALUES (?, ?, ?)"
 
+    db.query(sql, [title, module, req.session.user.open_project_id], (err, results) => {
+        if (err) return res.json({success: false})
+        return res.json({success:true, id: results.insertId})
+    })
 })
 
-app.get("/create-new-project", (req, res) => {
-
-})
 
 
 // routing
@@ -199,7 +230,7 @@ app.get("/j", (req, res) => {
 })
 
 
-app.get("/:project_id", (req, res) => {
+app.get("/projects", (req, res) => {
     res.sendFile(sf("projects.html"))
 })
 

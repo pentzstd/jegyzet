@@ -12,22 +12,22 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE note_projects (
+CREATE TABLE projects (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_name VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE notes (
+CREATE TABLE modules (
     id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
     project_id INT NOT NULL,
-    FOREIGN KEY (project_id) REFERENCES note_projects(id),
-    note_data LONGTEXT,
+    FOREIGN KEY (project_id) REFERENCES projects(id),
+    data LONGTEXT,
     title TINYTEXT
 );
 
-CREATE TABLE user_note_projects (
+CREATE TABLE user_projects (
     user_id INT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id),
     project_id INT NOT NULL,
-    FOREIGN KEY (project_id) REFERENCES note_projects(id)
+    FOREIGN KEY (project_id) REFERENCES projects(id)
 )

@@ -210,25 +210,8 @@ document.getElementById("new_project_button").addEventListener("click", async ()
   }
 })
 
-// ___ onload events _____________________________________________________________
-
-//  onload get every project
-
-let get_user_projects = async () => {
-  const res = await fetch("/get-user-projects")
-  const results = await res.json()
-  results.forEach(element => {
-    document.getElementById("project_box").insertAdjacentHTML("beforeend",`<div style="background-color:pink" id="${element.id}">${element.project_name}<div class="delete_project_button" id="${element.id}"> X </div></div>`)
-  })
-}
-
-const html_project_wrapper = `<div style="background-color:pink" class="project_tab" id="  ">  <div class="delete_project_button" id=" "> X </div></div>`
-window.addEventListener("load", async ()=> {
-  get_user_projects()
-})
 
 // ___ delete project ______________________________________________________________
-
 
 document.addEventListener("click", async (e) => {
     // 1. Megnézzük, hogy a törlés gombra kattintottunk-e
@@ -257,8 +240,7 @@ document.addEventListener("click", async (e) => {
         const result = await res.json();
 
         if (result.success) {
-            window.location.reload()
-            get_user_projects();
+            document.getElementById(project_id).remove()
         } else {
             alert("Szerver hiba: " + result.message);
         }
@@ -266,3 +248,85 @@ document.addEventListener("click", async (e) => {
         console.error("Hálózati hiba:", err);
     }
 });
+
+//  ___ go into project ________________________________________________________________
+
+
+document.addEventListener("click", async (e) => {
+  const selected_project = e.target.closest(".project_tab")
+  if (!selected_project) return;
+  load_project_data(selected_project.id)
+})
+
+
+// ___ create module ________________________________________________________________
+
+document.querySelector("#new_module_button").addEventListener("click", async (e) => {
+  let title = "Module_Name"
+  const moduleType1 = `<div class="note" style="left: 500px; top: 200px;">Module</div>`
+
+  const res = await fetch("/create-new-module", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      title: title,
+      module: moduleType1
+    })
+  })
+  const results = await res.json()
+  if (!results.success) return;
+    document.querySelector("#canvas").insertAdjacentHTML("beforeend", 
+    `<div id="${results.id}" class="note" style="left: 500px; top: 200px;">Module</div>`
+  )
+   
+})
+
+
+// ___ onload events _____________________________________________________________
+
+//  onload get every project
+
+const html_project_wrapper = `<div style="background-color:pink" class="project_tab" id="  ">  <div class="delete_project_button" id=" "> X </div></div>`
+let get_user_projects = async () => {
+  const res = await fetch("/get-user-projects")
+  const results = await res.json()
+  results.results.forEach(element => {
+    document.getElementById("project_box").insertAdjacentHTML("beforeend",`<div style="background-color:pink" class="project_tab" id="${element.id}">${element.project_name}<div class="delete_project_button" id="${element.id}"> X </div></div>`)
+  })
+  console.log("Open project ID: %s", results.open_project_id)
+}
+
+
+//  load project data
+
+let load_project_data = async (nid) => {
+    const res = await fetch("/set-new-open-project", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      new_open_project_id: nid
+    })
+  })
+  const results = await res.json()
+  console.log("New open project ID: %s", results.new_id)
+  const module_window = document.querySelector("#canvas")
+  document.querySelectorAll(".note").forEach(module => {
+    module.remove()
+  })
+  let mcount = 0
+  results.modules.forEach(module => {
+    module_window.insertAdjacentHTML("beforeend", module.data)
+    document.querySelectorAll(".note")[mcount].id = module.id
+    mcount++;
+  })
+}
+
+
+
+
+
+
+window.addEventListener("load", async ()=> {
+  get_user_projects()
+  load_project_data("NO")
+})

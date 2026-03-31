@@ -37,6 +37,11 @@ body, html {
   z-index: 100;
 }
 
+#new_module_button {
+  position: absolute;
+  z-index: 101;
+}
+
 #canvas {
   position: absolute;
   top: 0;
