@@ -210,16 +210,40 @@ app.get("/log-out", (req, res) => {
 })
 
 app.post("/create-new-module", (req, res) => {
+    const defPos = {x: 25, y: 25}
     const {title, module} = req.body
-    const sql = "INSERT INTO modules (title, data, project_id) VALUES (?, ?, ?)"
+    const sql = "INSERT INTO modules (title, data, project_id, xPos, yPos) VALUES (?, ?, ?, ?, ?)"
 
-    db.query(sql, [title, module, req.session.user.open_project_id], (err, results) => {
+    db.query(sql, [title, module, req.session.user.open_project_id, defPos.x, defPos.y], (err, results) => {
         if (err) return res.json({success: false})
-        return res.json({success:true, id: results.insertId})
+        return res.json({success:true, id: results.insertId, xPos: results.xPos})
     })
 })
 
+app.put("/update-modules", (req, res) => {
+    const modulePositions = req.body.positions; // {id, x, y} objektumok listája
+    const sql = "UPDATE modules SET xPos = ?, yPos = ? WHERE id = ?";
+    
+    let completed = 0;
+    let hasError = false;
 
+    if (modulePositions.length === 0) return res.json({ success: true });
+
+    modulePositions.forEach(el => {
+        db.query(sql, [el.x, el.y, el.id], (err, results) => {
+            if (err) {
+                hasError = true;
+            }
+            completed++;
+
+            // Csak akkor válaszolunk, ha az ÖSSZES lekérdezés lefutott
+            if (completed === modulePositions.length) {
+                if (hasError) return res.status(500).json({ success: false });
+                return res.json({ success: true });
+            }
+        });
+    });
+});
 
 // routing
 

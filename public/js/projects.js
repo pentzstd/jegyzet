@@ -113,6 +113,7 @@ note_window.addEventListener("mousemove", (e) => {
         el.style.left = `${left + dx}px`
         el.style.top  = `${top  + dy}px`
       })
+      onModuleChange(selected_notes)
     }
 
 if (is_dragging_selection_box) {
@@ -263,20 +264,20 @@ document.addEventListener("click", async (e) => {
 
 document.querySelector("#new_module_button").addEventListener("click", async (e) => {
   let title = "Module_Name"
-  const moduleType1 = `<div class="note" style="left: 500px; top: 200px;">Module</div>`
+  const moduleType = `<div class="note" style="left: 25px; top: 25px;">Module</div>`
 
   const res = await fetch("/create-new-module", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({
       title: title,
-      module: moduleType1
+      module: moduleType
     })
   })
   const results = await res.json()
   if (!results.success) return;
     document.querySelector("#canvas").insertAdjacentHTML("beforeend", 
-    `<div id="${results.id}" class="note" style="left: 500px; top: 200px;">Module</div>`
+    `<div id="${results.id}" class="note" style="left: 25px; top: 25px;">Module</div>`
   )
    
 })
@@ -316,12 +317,24 @@ let load_project_data = async (nid) => {
   let mcount = 0
   results.modules.forEach(module => {
     module_window.insertAdjacentHTML("beforeend", module.data)
-    document.querySelectorAll(".note")[mcount].id = module.id
+    let cn = document.querySelectorAll(".note")
+    cn[mcount].id = module.id
+    cn[mcount].style.left = (module.xPos.toString())+"px"
+    cn[mcount].style.top = (module.yPos.toString())+"px"
     mcount++;
   })
 }
 
+window.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    let nts = document.querySelectorAll(".note")
+    nts.forEach(el => {
+      console.log(el.offsetLeft)
+      console.log(el.offsetTop)
+    })
+  }
 
+})
 
 
 
@@ -330,3 +343,25 @@ window.addEventListener("load", async ()=> {
   get_user_projects()
   load_project_data("NO")
 })
+
+
+///////////////////////////////////////////////////// on change
+
+let onModuleChange = async (modules) => {
+  // Gyorsabb és tisztább összefűzés
+  let stringifiedModuleIds = modules.join(",");
+
+  let positions = modules.map(el => {
+    let cm = document.getElementById(el);
+    return { id: el, x: cm.offsetLeft, y: cm.offsetTop };
+  });
+
+  const res = await fetch("/update-modules", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      positions: positions // Küldjük el egyben a pozíciókat az ID-kkal
+    })
+  });
+  const results = await res.json();
+};

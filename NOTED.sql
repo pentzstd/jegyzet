@@ -14,7 +14,8 @@ CREATE TABLE users (
 
 CREATE TABLE projects (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    project_name VARCHAR(50) NOT NULL
+    project_name VARCHAR(50) NOT NULL,
+    module_window_offset BIGINT DEFAULT 0
 );
 
 CREATE TABLE modules (
@@ -22,6 +23,8 @@ CREATE TABLE modules (
     project_id INT NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id),
     data LONGTEXT,
+    xPos BIGINT DEFAULT 0,
+    yPos BIGINT DEFAULT 0,
     title TINYTEXT
 );
 
